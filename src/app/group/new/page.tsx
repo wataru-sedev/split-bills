@@ -1,6 +1,5 @@
 'use client'
 
-import { log } from "node:console";
 import { useEffect, useState } from "react";
 
 export default function AddPaymentPage () {
@@ -27,19 +26,21 @@ export default function AddPaymentPage () {
     processed?:boolean;
   }
 
-  const calculatePayment = (record:PaymentRecord[]) => {
+  const formatRecord = (record:PaymentRecord) => {
     const results: Result[] = [];
 
-    record.forEach((record) => {
-      const repaymentAmount = record.price / record.beneficiaries.length;
+    const repaymentAmount = record.price / record.beneficiaries.length;
 
-      record.beneficiaries.forEach((member) => {
-        if(member !== record.payer){
-          results.push( {from:member, to:record.payer, amount:repaymentAmount} )
-        }
-      })
+    record.beneficiaries.forEach((member) => {
+      if(member !== record.payer){
+        results.push( {from:member, to:record.payer, amount:repaymentAmount} )
+      }
     })
+    
+    return results;
+  }
 
+  const calculatePayment = (results:Result[]) => {
     const correctResults: Result[] = [];
 
     for ( let i = 0; i < results.length; i++ ) {
@@ -83,6 +84,12 @@ export default function AddPaymentPage () {
       price:parseInt(price),
     };
 
+    const formatedRecord = formatRecord(newRecord);
+    const newResults = [...finalResults, ...formatedRecord];
+    const calculatedResults = calculatePayment(newResults);
+    setFinalResults(calculatedResults);
+    
+
     setPaymentRecords((prev) => [...prev, newRecord]);
     setTitle('');
     setPayerName('');
@@ -93,44 +100,45 @@ export default function AddPaymentPage () {
   useEffect(() => {
     if(paymentRecords.length === 0) return;
 
-    const returnResults = calculatePayment(paymentRecords);
-    setFinalResults(returnResults);
+    
   }, [paymentRecords]);
   
   return(
-    <div className="flex flex-col items-center gap-3" >
-      <h1>立替記録追加ページ</h1>
-      <div>
-        <select value={payerName} name={payerName} onChange={(e) => setPayerName(e.target.value)} >
-          <option value="" disabled>選択してください</option>
+    <div className="flex flex-col items-center" >
+      <div className="flex flex-col items-center justify-center gap-4 pt-6 " >
+        <h1 className="text-xl font-semibold" >立替記録追加ページ</h1>
+        <div>
+          <select value={payerName} name={payerName} onChange={(e) => setPayerName(e.target.value)} className="border rounded px-2 py-1" >
+            <option value="" disabled>選択してください</option>
+            {members.map((member) => (
+              <option key={member} value={member} >{member}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2" >
           {members.map((member) => (
-            <option key={member} value={member} >{member}</option>
+            <label key={member}>
+              <input type="checkbox" value={member} checked={selectedMember.includes(member)} onChange={(e) => {
+                const value = e.target.value;
+                const checked = e.target.checked;
+                setSelectedMember((prev) => checked ?  [...prev, value] : prev.filter((name) => name !== value) )
+              }}/>
+              {member}
+            </label>
           ))}
-        </select>
-      </div>
-      <div>
-        {members.map((member) => (
-          <label key={member}>
-            <input type="checkbox" value={member} checked={selectedMember.includes(member)} onChange={(e) => {
-              const value = e.target.value;
-              const checked = e.target.checked;
-              setSelectedMember((prev) => checked ?  [...prev, value] : prev.filter((name) => name !== value) )
-            }}/>
-            {member}
-          </label>
-        ))}
-      </div>
-      <div>
-        <input type="text" placeholder="ご飯代" value={title} onChange={(e) => setTitle(e.target.value)} className="border rounded"  />
-      </div>
-      <div>
-        <input type="text"  placeholder="3600" value={price} onChange={(e) => setPrice(e.target.value)} className="border rounded" />
-      </div>
-      <button onClick={handleSubmit} className="bg-cyan-500 text-white rounded-xl px-4 py-2 hover:cursor-pointer hover:shadow-lg" >登録</button>
-      <div>
-        {finalResults.map((result) => (
-          <p key={`${result.from}-${result.to}`} >{result.from}→{result.to} {result.amount}円</p>
-        ))}
+        </div>
+        <div>
+          <input type="text" placeholder="ご飯代" value={title} onChange={(e) => setTitle(e.target.value)} className="border rounded hover:shadow-lg"  />
+        </div>
+        <div>
+          <input type="text"  placeholder="3600" value={price} onChange={(e) => setPrice(e.target.value)} className="border rounded hover:shadow-lg" />
+        </div>
+        <button onClick={handleSubmit} className="bg-cyan-500 text-white rounded-xl px-4 py-2 hover:cursor-pointer hover:shadow-lg" >登録</button>
+        <div >
+          {finalResults.map((result) => (
+            <p key={`${result.from}-${result.to}`} >{result.from}→{result.to} {result.amount}円</p>
+          ))}
+        </div>
       </div>
     </div>
   )
