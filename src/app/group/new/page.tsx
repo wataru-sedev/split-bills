@@ -1,30 +1,24 @@
 'use client'
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useGroupStore, PaymentRecord, Result } from "@/store";
+import { useRouter } from "next/navigation"
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AddPaymentPage () {
-  const members =  ['のびた', 'すねお', 'じゃいあん'] ;
+  const group = useGroupStore((state) => state.group);
+  const paymentRecords = useGroupStore((state) => state.paymentRecords);
+  const setPaymentRecords = useGroupStore((state) => state.setPaymentRecords);
+  const finalResults = useGroupStore((state) => state.finalResults);
+  const setFinalResults = useGroupStore((state) => state.setFinalResults);
 
   const [payerName, setPayerName] = useState<string>('');
   const [selectedMember, setSelectedMember] = useState<Array<string>>([]);
   const [title, setTitle] = useState<string>('');
   const [price, setPrice] = useState('');
-  const [paymentRecords, setPaymentRecords] = useState<Array<PaymentRecord>>([]);
-  const [finalResults, setFinalResults] = useState<Array<Result>>([]);
 
-  type PaymentRecord = {
-    title:string;
-    payer:string;
-    beneficiaries:string[];
-    price:number;
-  }
-  
-  type Result = {
-    from:string;
-    to:string;
-    amount:number;
-    processed?:boolean;
-  }
+  const router = useRouter();
 
   const formatRecord = (record:PaymentRecord) => {
     const results: Result[] = [];
@@ -39,44 +33,54 @@ export default function AddPaymentPage () {
     
     return results;
   }
+  
+  const calculatePaymentFromRecords = (records:PaymentRecord[]):Result[] => {
+    const results:Result[] = records.flatMap(formatRecord);
 
-  const calculatePayment = (results:Result[]) => {
-    const correctResults: Result[] = [];
+    const map = new Map<string, number>();
 
-    for ( let i = 0; i < results.length; i++ ) {
-      if ( results[i].processed ) continue;
-      let isThroughInsideRoop:boolean = true;
-
-      for ( let j = i + 1; j < results.length; j++ ){
-        if ( results[j].processed ) continue;
-
-        if ( results[i].from === results[j].from && results[i].to === results[j].to ){
-          const totalAmount = results[i].amount + results[j].amount;
-          correctResults.push({ from:results[i].from, to:results[i].to, amount:totalAmount });
-          isThroughInsideRoop = false;
-          results[i].processed = true;
-          results[j].processed = true;
-        } else if ( results[i].from === results[j].to && results[i].to === results[j].from){
-          const difference = results[i].amount - results[j].amount;
-          if ( difference > 0 ){
-            correctResults.push({ from:results[i].from, to:results[i].to, amount:difference });
-          } else if ( difference < 0 ){
-            correctResults.push({ from:results[i].to, to:results[i].from, amount:Math.abs(difference) });}
-          isThroughInsideRoop = false;
-          results[i].processed = true;
-          results[j].processed = true;
-        }
-      }
-
-      if ( isThroughInsideRoop ) correctResults.push({ from:results[i].from, to:results[i].to, amount:results[i].amount });
-      results[i].processed = true;
+    //合算処理
+    for(const {from, to, amount} of results){
+      const key = `${from}->${to}`;
+      map.set(key, (map.get(key) || 0) + amount);
     }
-    
-    return correctResults;
+
+    const finalResults:Result[] = [];
+    const visited = new Set<string>();
+
+    //相殺処理
+    for(const [key, amount] of map.entries()){
+      if(visited.has(key)) continue;
+
+      const [from, to] = key.split('->');
+      const reverseKey = `${to}->${from}`;
+      const reverseAmount = map.get(reverseKey) || 0;
+
+      visited.add(key);
+      visited.add(reverseKey);
+
+      const diff = amount - reverseAmount;
+
+      if(diff > 0){
+        finalResults.push({from, to, amount:diff});
+      }else if(diff < 0){
+        finalResults.push({from:to, to:from, amount:-diff})
+      }
+    }
+    return finalResults;
   }
 
   const handleSubmit = () => {
+    if( !title || !payerName || !selectedMember.length || !price ) {
+      toast.error('入力されていない項目があります');
+      return;
+    } 
 
+    if( isNaN(parseInt(price))){
+      toast.error('金額は数字を入力してください');
+      return;
+    }
+    
     const newRecord:PaymentRecord = {
       title:title,
       payer:payerName,
@@ -84,61 +88,53 @@ export default function AddPaymentPage () {
       price:parseInt(price),
     };
 
-    const formatedRecord = formatRecord(newRecord);
-    const newResults = [...finalResults, ...formatedRecord];
-    const calculatedResults = calculatePayment(newResults);
-    setFinalResults(calculatedResults);
-    
+    const updatedRecords:PaymentRecord[] = [...paymentRecords, newRecord];
+    setPaymentRecords(updatedRecords);
+    setFinalResults(calculatePaymentFromRecords(updatedRecords));
 
-    setPaymentRecords((prev) => [...prev, newRecord]);
     setTitle('');
     setPayerName('');
     setSelectedMember([]);
     setPrice('');
+
+    router.push('/group')
   }
 
-  useEffect(() => {
-    if(paymentRecords.length === 0) return;
-
-    
-  }, [paymentRecords]);
-  
   return(
-    <div className="flex flex-col items-center" >
-      <div className="flex flex-col items-center justify-center gap-4 pt-6 " >
-        <h1 className="text-xl font-semibold" >立替記録追加ページ</h1>
-        <div>
-          <select value={payerName} name={payerName} onChange={(e) => setPayerName(e.target.value)} className="border rounded px-2 py-1" >
+    <div className="flex justify-center" >
+      <div className="w-96 bg-white rounded-xl flex flex-col items-center text-lg p-6 gap-6" >
+        <div className="w-full flex items-center gap-1">
+          <select value={payerName} name={payerName} onChange={(e) => setPayerName(e.target.value)} className="w-full border rounded-lg px-3 py-2 hover:shadow-lg" >
             <option value="" disabled>選択してください</option>
-            {members.map((member) => (
+            {group.map((member) => (
               <option key={member} value={member} >{member}</option>
             ))}
           </select>
+          <span>が</span>
         </div>
-        <div className="flex gap-2" >
-          {members.map((member) => (
-            <label key={member}>
+        <div className="w-full flex" >
+          {group.map((member) => (
+            <label key={member} className="w-full inline-flex items-center">
               <input type="checkbox" value={member} checked={selectedMember.includes(member)} onChange={(e) => {
                 const value = e.target.value;
                 const checked = e.target.checked;
                 setSelectedMember((prev) => checked ?  [...prev, value] : prev.filter((name) => name !== value) )
-              }}/>
+              }} className="hover:shadow-lg"/>
               {member}
             </label>
           ))}
         </div>
-        <div>
-          <input type="text" placeholder="ご飯代" value={title} onChange={(e) => setTitle(e.target.value)} className="border rounded hover:shadow-lg"  />
+        <div className="w-full flex justify-center items-center text-lg gap-1">
+          <span>の</span>
+          <input type="text" placeholder="ご飯代" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border rounded px-3 py-2 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-300"  />
+          <span className="whitespace-nowrap">を払って</span>
         </div>
-        <div>
-          <input type="text"  placeholder="3600" value={price} onChange={(e) => setPrice(e.target.value)} className="border rounded hover:shadow-lg" />
+        <div className="w-full flex justify-center items-center text-lg" >
+          <span>￥</span>
+          <input type="text"  placeholder="3600" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border rounded px-3 py-2 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-300" />
+          <span className="whitespace-nowrap">かかった</span>
         </div>
-        <button onClick={handleSubmit} className="bg-cyan-500 text-white rounded-xl px-4 py-2 hover:cursor-pointer hover:shadow-lg" >登録</button>
-        <div >
-          {finalResults.map((result) => (
-            <p key={`${result.from}-${result.to}`} >{result.from}→{result.to} {result.amount}円</p>
-          ))}
-        </div>
+        <button onClick={handleSubmit} className="w-full bg-cyan-500 text-white rounded-md px-4 py-2 hover:cursor-pointer hover:shadow-lg" >登録</button>
       </div>
     </div>
   )
