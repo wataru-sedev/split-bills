@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useGroupStore, PaymentRecord, Result } from "@/store";
 import { useRouter } from "next/navigation"
 import { Checkbox } from "@/components/ui/checkbox";
+import { calculatePaymentFromRecords } from "@/lib/calcutale/calculate";
 
 export default function AddPaymentPage () {
   const group = useGroupStore((state) => state.group);
@@ -19,56 +20,6 @@ export default function AddPaymentPage () {
   const [price, setPrice] = useState('');
 
   const router = useRouter();
-
-  const formatRecord = (record:PaymentRecord) => {
-    const results: Result[] = [];
-
-    const repaymentAmount = record.price / record.beneficiaries.length;
-
-    record.beneficiaries.forEach((member) => {
-      if(member !== record.payer){
-        results.push( {from:member, to:record.payer, amount:repaymentAmount} )
-      }
-    })
-    
-    return results;
-  }
-  
-  const calculatePaymentFromRecords = (records:PaymentRecord[]):Result[] => {
-    const results:Result[] = records.flatMap(formatRecord);
-
-    const map = new Map<string, number>();
-
-    //合算処理
-    for(const {from, to, amount} of results){
-      const key = `${from}->${to}`;
-      map.set(key, (map.get(key) || 0) + amount);
-    }
-
-    const finalResults:Result[] = [];
-    const visited = new Set<string>();
-
-    //相殺処理
-    for(const [key, amount] of map.entries()){
-      if(visited.has(key)) continue;
-
-      const [from, to] = key.split('->');
-      const reverseKey = `${to}->${from}`;
-      const reverseAmount = map.get(reverseKey) || 0;
-
-      visited.add(key);
-      visited.add(reverseKey);
-
-      const diff = amount - reverseAmount;
-
-      if(diff > 0){
-        finalResults.push({from, to, amount:diff});
-      }else if(diff < 0){
-        finalResults.push({from:to, to:from, amount:-diff})
-      }
-    }
-    return finalResults;
-  }
 
   const handleSubmit = () => {
     if( !title || !payerName || !selectedMember.length || !price ) {
@@ -99,6 +50,8 @@ export default function AddPaymentPage () {
 
     router.push('/group')
   }
+
+  const backToGroup = () => router.push('/group');
 
   return(
     <div className="flex justify-center" >
@@ -135,6 +88,7 @@ export default function AddPaymentPage () {
           <span className="whitespace-nowrap">かかった</span>
         </div>
         <button onClick={handleSubmit} className="w-full bg-cyan-500 text-white rounded-md px-4 py-2 hover:cursor-pointer hover:shadow-lg" >登録</button>
+        <button onClick={backToGroup} className="w-full bg-gray-300 text-gray-700 rounded-md px-4 py-2 hover:cursor-pointer hover:shadow-lg" >戻る</button>
       </div>
     </div>
   )
