@@ -55,12 +55,14 @@ export default function () {
             {paymentRecords.map((record, index) => {  
               const { title, payer, beneficiaries, price } = record;
               return(
-                <div key={title} className="flex items-center gap-y-2  gap-1 border rounded-md p-4 shadow-sm">
-                  <span className="basis-1/9 font-medium">{title}</span>
-                  <span className="basis-3/9">{payer}が立替</span>
-                  <div className="basis-3/9 flex gap-1" >{beneficiaries.map((person) => <p key={person} className="border rounded px-1 py-1 text-xs bg-gray-100">{person}</p>)}</div>
-                  <input type="number" className="basis-1/9 border rounded py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400" value={price} onChange={(e) => handlePriceChange(index, e.target.value)}  />
-                  <button onClick={() => onClickDelete(index)} className="basis-1/9 text-gray-500 hover:text-red-500 hover:underline hover:cursor-pointer" >削除</button>
+                <div key={title} className="flex flex-col md-flex-row md:items-center items-center gap-y-2  gap-1 border rounded-md p-4 shadow-sm">
+                  <span className="w-full font-medium">{title}</span>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm">{payer}が立替</span>
+                    <div className="flex gap-1" >{beneficiaries.map((person) => <p key={person} className="border rounded px-1 py-1 text-xs bg-gray-100">{person}</p>)}</div>
+                    <input type="number" className="w-12 border rounded p-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400" value={price} onChange={(e) => handlePriceChange(index, e.target.value)}  />
+                  </div> 
+                  <button onClick={() => onClickDelete(index)} className="text-sm text-gray-500 hover:text-red-500 hover:underline hover:cursor-pointer" >削除</button>
                 </div>
             )})}
           </div>
