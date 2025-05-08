@@ -18,11 +18,6 @@ export default function () {
   const isValidRecords:boolean = editRecords.every((r) => !isNaN(r.price));
 
   const handlePriceChange = (index:number, value:string) => {
-    if(!isValidRecords) {
-      toast.error('正しい金額を入力してください');
-      return;
-    }
-
     const updated = [...editRecords];
     updated[index].price = parseInt(value);
     setEditRecords(updated);
@@ -38,6 +33,10 @@ export default function () {
   };
 
   const handleUpdate = () => {
+    if(!isValidRecords) {
+      toast.error('正しい金額を入力してください');
+      return;
+    }
     
     setPaymentRecords(editRecords);
     const final = calculatePaymentFromRecords(editRecords);
