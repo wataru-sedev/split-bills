@@ -1,19 +1,39 @@
 'use client'
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGroupStore } from "@/store";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/useAuthStore";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase"
 
 export default function Home() {
   const [member, setMember] = useState<string>('');
+  const [loading, setLoading] = useState(true); 
 
   const router = useRouter();
 
+  const setUser = useAuthStore((state) => state.setUser);
+  const user = useAuthStore((state) => state.user);
   const group = useGroupStore((state) => state.group);
   const groupName = useGroupStore((state) => state.groupName);
   const addMember = useGroupStore((state) => state.addMember);
   const setGroupName = useGroupStore((state) => state.setGroupName); 
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if(user) {
+        setUser({ uid: user.uid, email: user.email });
+        setLoading(false);
+      } else {
+        router.push('/login')
+      }
+    });
+    return () => unsubscribe();
+  } , [router, setUser])
+
+  if(loading) return <p>読み込み中…</p>
 
   const handleAddMember = () => {
     if( member.trim() === '' ) return;
@@ -27,10 +47,8 @@ export default function Home() {
       return;
     } 
 
-    setGroupName(groupName);
     router.push('/group');
   }
-  
 
   return (
     <div className="flex justify-center">

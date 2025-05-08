@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useGroupStore, PaymentRecord, Result } from "@/store";
 import { useRouter } from "next/navigation"
-import { Checkbox } from "@/components/ui/checkbox";
 import { calculatePaymentFromRecords } from "@/lib/calcutale/calculate";
 
 export default function AddPaymentPage () {
