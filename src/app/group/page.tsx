@@ -12,7 +12,7 @@ export default function GroupPage () {
   const router = useRouter();
 
   const showDetail = () => {
-    router.push('/group/edit')
+    router.push('/group/edit');
   }
   
   return(

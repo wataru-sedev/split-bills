@@ -7,8 +7,9 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { startTransition } from "react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
+
+  const router = useRouter();
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();

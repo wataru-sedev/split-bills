@@ -6,20 +6,23 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/useAuthStore";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase"
+import { db, auth } from "@/lib/firebase"
+import { v4 as uuidv4 } from "uuid";
+import { doc, setDoc } from "firebase/firestore";
+
 
 export default function Home() {
-  const [member, setMember] = useState<string>('');
-  const [loading, setLoading] = useState(true); 
-
-  const router = useRouter();
-
   const setUser = useAuthStore((state) => state.setUser);
   const user = useAuthStore((state) => state.user);
   const group = useGroupStore((state) => state.group);
   const groupName = useGroupStore((state) => state.groupName);
   const addMember = useGroupStore((state) => state.addMember);
   const setGroupName = useGroupStore((state) => state.setGroupName); 
+
+  const [member, setMember] = useState<string>('');
+  const [loading, setLoading] = useState(true); 
+
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -33,7 +36,7 @@ export default function Home() {
     return () => unsubscribe();
   } , [router, setUser])
 
-  if(loading) return <p>読み込み中…</p>
+  if(loading) return <p className="flex justify-center items-center text-xl m-5" >読み込み中…</p>
 
   const handleAddMember = () => {
     if( member.trim() === '' ) return;
@@ -41,13 +44,19 @@ export default function Home() {
     setMember('');
   }
   
-  const makeGroupPage = () => {
+  const makeGroupPage = async () => {
     if( groupName.trim() === '' || group.length === 0 ) {
       toast.error('グループ名とメンバー名を入力してください。');
       return;
-    } 
+    }
+    const groupId = uuidv4();
 
-    router.push('/group');
+    await setDoc(doc(db, 'groups', groupId),{
+      groupName:groupName,
+      members:group,
+    });    
+
+    router.push(`/${groupId}`);
   }
 
   return (

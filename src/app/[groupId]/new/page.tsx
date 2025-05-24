@@ -1,22 +1,17 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from 'next/navigation';
+import { fetchGroupData, Group } from '@/lib/firebase/fetchGroupData';
 import { toast } from "sonner";
-import { useGroupStore, PaymentRecord, Result } from "@/store";
-import { useRouter } from "next/navigation"
-import { calculatePaymentFromRecords } from "@/lib/calcutale/calculate";
-import { saveGroupData } from "@/lib/firebase/saveGroupData";
-import { getAuth } from "firebase/auth";
-import { v4 as uuidv4 } from "uuid";
+import { PaymentRecord } from "@/lib/type";
+import { addPaymentRecord } from "@/lib/firebase/addPaymentReocord";
 
 export default function AddPaymentPage () {
-  //zustandの値と更新関数を取得
-  const group = useGroupStore((state) => state.group);
-  const paymentRecords = useGroupStore((state) => state.paymentRecords);
-  const setPaymentRecords = useGroupStore((state) => state.setPaymentRecords);
-  const finalResults = useGroupStore((state) => state.finalResults);
-  const setFinalResults = useGroupStore((state) => state.setFinalResults);
+  const params = useParams();
+  const groupId = params.groupId as string;
 
+  const [groupData, setGroupData] = useState<Group | null>(null);
   const [payerName, setPayerName] = useState<string>('');
   const [selectedMember, setSelectedMember] = useState<Array<string>>([]);
   const [title, setTitle] = useState<string>('');
@@ -24,32 +19,17 @@ export default function AddPaymentPage () {
 
   const router = useRouter();
 
-  const handleSave = async () => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if(!user) {
-      alert('ログインしていません');
-      return;
+  useEffect(() => {
+    const loadData = async () => {
+      if(!groupId) return;
+      const data = await fetchGroupData(groupId);
+      setGroupData(data);
     }
-    
-    const userId = user.uid;
-    const groupId = uuidv4();
+    loadData();
+  }, [groupId]);
 
-    try{
-      await saveGroupData({
-        userId,
-        groupId,
-        paymentRecords,
-        finalResults,
-      })
-      router.push(`/group/${groupId}`);
-    }catch (e){
-      alert('失敗');
-    }
-  }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if( !title || !payerName || !selectedMember.length || !price ) {
       toast.error('入力されていない項目があります');
       return;
@@ -59,44 +39,41 @@ export default function AddPaymentPage () {
       toast.error('金額は数字を入力してください');
       return;
     }
-    
+
     const newRecord:PaymentRecord = {
-      title:title,
-      payer:payerName,
-      beneficiaries:selectedMember,
-      price:parseInt(price),
-    };
-
-    const updatedRecords:PaymentRecord[] = [...paymentRecords, newRecord];
-    setPaymentRecords(updatedRecords);
-    setFinalResults(calculatePaymentFromRecords(updatedRecords));
-
+          title:title,
+          payer:payerName,
+          beneficiaries:selectedMember,
+          price:parseInt(price),
+        };
+    
+    await addPaymentRecord(groupId,newRecord);
+    toast.success('登録しました')
+    
     setTitle('');
     setPayerName('');
     setSelectedMember([]);
     setPrice('');
 
-    handleSave();
-
-    router.push('/group');
+    router.push(`/${groupId}`);
   }
 
-  const backToGroup = () => router.push('/group');
+  const backToGroup = () => router.push(`/${groupId}`);
 
-  return(
-    <div className="flex justify-center" >
-      <div className="w-96 bg-white rounded-xl flex flex-col items-center text-lg p-6 gap-6" >
+  return (
+    <div className="flex justify-center">
+      <div className="w-96 bg-white rounded-xl flex flex-col items-center text-lg p-6 gap-6">
         <div className="w-full flex items-center gap-1">
           <select value={payerName} name={payerName} onChange={(e) => setPayerName(e.target.value)} className="w-full border rounded-lg px-3 py-2 hover:shadow-lg" >
             <option value="" disabled>選択してください</option>
-            {group.map((member) => (
+            {groupData?.members.map((member) => (
               <option key={member} value={member} >{member}</option>
             ))}
           </select>
           <span>が</span>
         </div>
         <div className="w-full flex" >
-          {group.map((member) => (
+          {groupData?.members.map((member) => (
             <label key={member} className="w-full inline-flex items-center">
               <input type="checkbox" value={member} checked={selectedMember.includes(member)} onChange={(e) => {
                 const value = e.target.value;
@@ -119,7 +96,7 @@ export default function AddPaymentPage () {
         </div>
         <button onClick={handleSubmit} className="w-full bg-cyan-500 text-white rounded-md px-4 py-2 hover:cursor-pointer hover:shadow-lg" >登録</button>
         <button onClick={backToGroup} className="w-full bg-gray-300 text-gray-700 rounded-md px-4 py-2 hover:cursor-pointer hover:shadow-lg" >戻る</button>
-      </div>
+      </div>  
     </div>
   )
 }
