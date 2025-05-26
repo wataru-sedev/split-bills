@@ -14,7 +14,7 @@ export default function editPage () {
   const params = useParams();
   const groupId = typeof params.groupId === 'string' ? params.groupId : '';
 
-
+  const [loading, setLoading] = useState(true); 
   const [records, setRecords] = useState<PaymentRecord[]>([]);
 
   const router = useRouter();
@@ -27,7 +27,10 @@ export default function editPage () {
         setRecords(data);
       };
       loadRecords();
+      setLoading(false);
     }, [groupId]);
+  
+  if(loading) return <p className="flex justify-center items-center text-xl m-5" >Loading…</p>
 
   const handlePriceChange = (id:string, value:string) => {
     const updated = records.map((record) => record.id === id ? {...record, price:parseInt(value)} : record );

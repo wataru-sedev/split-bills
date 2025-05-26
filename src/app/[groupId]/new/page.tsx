@@ -11,6 +11,7 @@ export default function AddPaymentPage () {
   const params = useParams();
   const groupId = params.groupId as string;
 
+  const [loading, setLoading] = useState(true); 
   const [groupData, setGroupData] = useState<Group | null>(null);
   const [payerName, setPayerName] = useState<string>('');
   const [selectedMember, setSelectedMember] = useState<Array<string>>([]);
@@ -26,8 +27,10 @@ export default function AddPaymentPage () {
       setGroupData(data);
     }
     loadData();
+    setLoading(false);
   }, [groupId]);
 
+  if(loading) return <p className="flex justify-center items-center text-xl m-5" >Loading…</p>
 
   const handleSubmit = async () => {
     if( !title || !payerName || !selectedMember.length || !price ) {
@@ -45,6 +48,7 @@ export default function AddPaymentPage () {
           payer:payerName,
           beneficiaries:selectedMember,
           price:parseInt(price),
+          id:'',
         };
     
     await addPaymentRecord(groupId,newRecord);

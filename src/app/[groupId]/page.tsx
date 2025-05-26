@@ -15,6 +15,7 @@ type Props = {
 export default function GroupPage ({params}: Props)  {
   const { groupId } = use(params);
 
+  const [loading, setLoading] = useState(true); 
   const [groupData, setGroupData] = useState<Group | null>(null); 
   const [results, setResults] = useState<Result[]>([]);
 
@@ -24,6 +25,7 @@ export default function GroupPage ({params}: Props)  {
     const loadData = async () => {
       const data = await fetchGroupData(groupId);
       setGroupData(data);
+      setLoading(false);
     }
     loadData();
     
@@ -34,9 +36,13 @@ export default function GroupPage ({params}: Props)  {
       const data = await fetchPaymentRecords(groupId);
       const results = calculatePaymentFromRecords(data);
       setResults(results);
+      setLoading(false);
     };
     loadRecords();
   },[groupId]);
+
+  if(loading) return <p className="flex justify-center items-center text-xl m-5" >Loading…</p>
+
 
   const showDetail = () => router.push(`/${groupId}/edit`);
 

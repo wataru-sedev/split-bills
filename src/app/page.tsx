@@ -36,7 +36,7 @@ export default function Home() {
     return () => unsubscribe();
   } , [router, setUser])
 
-  if(loading) return <p className="flex justify-center items-center text-xl m-5" >読み込み中…</p>
+  if(loading) return <p className="flex justify-center items-center text-xl m-5" >Loading…</p>
 
   const handleAddMember = () => {
     if( member.trim() === '' ) return;
