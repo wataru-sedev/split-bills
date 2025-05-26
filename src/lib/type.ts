@@ -3,7 +3,7 @@ export type PaymentRecord = {
   payer:string;
   beneficiaries:string[];
   price:number;
-  id?:string;
+  id:string;
 }
 
 export type Result = {

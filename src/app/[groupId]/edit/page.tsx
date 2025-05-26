@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 import { fetchPaymentRecords } from '@/lib/firebase/fetchPaymetRecords';
 import { PaymentRecord } from "@/lib/type";
 import { useParams } from "next/navigation";
-import { calculatePaymentFromRecords } from "@/lib/calcutale/calculate";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 
 export default function editPage () {
   const params = useParams();
-  const groupId = params.groupId as string;
+  const groupId = typeof params.groupId === 'string' ? params.groupId : '';
+
 
   const [records, setRecords] = useState<PaymentRecord[]>([]);
 
@@ -49,16 +49,30 @@ export default function editPage () {
     }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if(!isValidRecords) {
       toast.error('正しい金額を入力してください');
       return;
     }
-    
-    const final = calculatePaymentFromRecords(records);
-    
-    toast.info(`支払い記録を更新しました`);
-    router.push(`/${groupId}`);
+
+    if(typeof groupId !== 'string' || !groupId) {
+      toast.error('グループidを取得できませんでした');
+      return;
+    }
+
+    try{
+      await Promise.all(
+        records.map(async (record) => {
+          const docRef = doc(db, 'groups', groupId, 'paymentRecords', record.id);
+          await setDoc(docRef, record);
+        })
+      );
+      toast.info(`支払い記録を更新しました`);
+      router.push(`/${groupId}`);
+    } catch (error) {
+      console.log('Firestore更新エラー', error);
+      toast.error('更新中にエラーが発生しました')
+    }
   }
 
   const backToGroup = () => router.push(`/${groupId}`);
