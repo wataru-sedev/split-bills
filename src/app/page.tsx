@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useGroupStore } from "@/store";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAuthStore } from "@/store/useAuthStore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "@/lib/firebase"
 import { v4 as uuidv4 } from "uuid";
@@ -12,32 +11,15 @@ import { doc, setDoc } from "firebase/firestore";
 
 
 export default function Home() {
-  const setUser = useAuthStore((state) => state.setUser);
-  const user = useAuthStore((state) => state.user);
   const group = useGroupStore((state) => state.group);
   const groupName = useGroupStore((state) => state.groupName);
   const addMember = useGroupStore((state) => state.addMember);
   const setGroupName = useGroupStore((state) => state.setGroupName); 
 
   const [member, setMember] = useState<string>('');
-  const [loading, setLoading] = useState(true); 
 
   const router = useRouter();
-
-  // useEffect(() => {
-  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
-  //     if(user) {
-  //       setUser({ uid: user.uid, email: user.email });
-  //       setLoading(false);
-  //     } else {
-  //       router.push('/login')
-  //     }
-  //   });
-  //   return () => unsubscribe();
-  // } , [router, setUser]);
-
-  // if(loading) return <p className="flex justify-center items-center text-xl m-5" >Loading…</p>
-
+ 
   const handleAddMember = () => {
     if( member.trim() === '' ) return;
     addMember(member);
