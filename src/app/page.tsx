@@ -24,19 +24,19 @@ export default function Home() {
 
   const router = useRouter();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if(user) {
-        setUser({ uid: user.uid, email: user.email });
-        setLoading(false);
-      } else {
-        router.push('/login')
-      }
-    });
-    return () => unsubscribe();
-  } , [router, setUser])
+  // useEffect(() => {
+  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
+  //     if(user) {
+  //       setUser({ uid: user.uid, email: user.email });
+  //       setLoading(false);
+  //     } else {
+  //       router.push('/login')
+  //     }
+  //   });
+  //   return () => unsubscribe();
+  // } , [router, setUser]);
 
-  if(loading) return <p className="flex justify-center items-center text-xl m-5" >Loading…</p>
+  // if(loading) return <p className="flex justify-center items-center text-xl m-5" >Loading…</p>
 
   const handleAddMember = () => {
     if( member.trim() === '' ) return;
