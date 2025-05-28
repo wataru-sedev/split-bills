@@ -3,7 +3,7 @@ import { Result,PaymentRecord } from "../type";
 const formatRecord = (record:PaymentRecord) => {
   const results: Result[] = [];
 
-  const repaymentAmount = record.price / record.beneficiaries.length;
+  const repaymentAmount = Math.trunc( record.price / record.beneficiaries.length );
 
   record.beneficiaries.forEach((member) => {
     if(member !== record.payer){
