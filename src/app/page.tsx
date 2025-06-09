@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useGroupStore } from "@/store";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { onAuthStateChanged } from "firebase/auth";
-import { db, auth } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
 import { v4 as uuidv4 } from "uuid";
 import { doc, setDoc } from "firebase/firestore";
 
@@ -17,6 +16,7 @@ export default function Home() {
   const setGroupName = useGroupStore((state) => state.setGroupName); 
 
   const [member, setMember] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
   const router = useRouter();
  
@@ -27,18 +27,22 @@ export default function Home() {
   }
   
   const makeGroupPage = async () => {
+    setLoading(true);
+
     if( groupName.trim() === '' || group.length === 0 ) {
       toast.error('グループ名とメンバー名を入力してください。');
       return;
     }
     const groupId = uuidv4();
 
+    
     await setDoc(doc(db, 'groups', groupId),{
-      groupName:groupName,
-      members:group,
-    });    
+    groupName:groupName,
+    members:group,
+    });
 
     router.push(`/${groupId}`);
+    setLoading(false);
   }
 
   return (
@@ -60,7 +64,9 @@ export default function Home() {
             ))}
           </div>
         </div>
-        <button onClick={makeGroupPage} className="w-full text-center bg-cyan-500 text-white rounded px-4 py-2 hover:cursor-pointer hover:shadow-lg" >グループページを作成</button>
+        <button onClick={makeGroupPage} disabled={loading} className="w-full text-center bg-cyan-500 text-white rounded px-4 py-2 hover:cursor-pointer hover:shadow-lg" >
+          {loading ? '作成中...' : 'グループページを作成'}
+        </button>
       </div>
     </div>
   );
