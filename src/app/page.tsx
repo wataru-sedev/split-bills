@@ -65,7 +65,7 @@ export default function Home() {
           </div>
         </div>
         <button onClick={makeGroupPage} disabled={loading} className="w-full text-center bg-cyan-500 text-white rounded px-4 py-2 hover:cursor-pointer hover:shadow-lg" >
-          {loading ? '作成中...' : 'グループページを作成'}
+          {loading ? '作成中...' : 'グループを作成'}
         </button>
       </div>
     </div>
